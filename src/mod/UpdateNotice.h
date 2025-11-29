@@ -29,6 +29,7 @@ private:
     std::optional<gmlib::i18n::LangI18n> mI18n;
 };
 
-LANGI18N_LITERALS(UpdateNotice::getInstance().getI18n())
+// 修正宏
+GMLIB_LANGI18N_LITERALS(UpdateNotice::getInstance().getI18n())
 
 } // namespace gm

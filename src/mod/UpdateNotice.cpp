@@ -28,9 +28,13 @@ bool UpdateNotice::enable() {
     mI18n->updateOrCreateLanguage("zh_CN", zh_CN);
     mI18n->loadAllLanguages();
     mI18n->chooseLanguage(mConfig->language);
-    // 没有这个 PAPI 就自动注册一个 (GMLIB v1.3.1 开始自带)
-    if (!gmlib::PlaceholderAPI::getPlaceholderData("player_client_version")) {
-        gmlib::PlaceholderAPI::registerPlaceholder(
+
+    // 新版 PAPI
+    auto& papi = gmlib::PlaceholderAPI::getInstance();
+
+    // 注册变量
+    if (!papi.getPlaceholderData("player_client_version")) {
+        papi.registerPlaceholder(
             "player_client_version",
             [&](optional_ref<gmlib::GMPlayer> player) -> std::optional<std::string> {
                 if (player.has_value()) {
@@ -42,20 +46,28 @@ bool UpdateNotice::enable() {
             }
         );
     }
+    
     auto& eventBus = ll::event::EventBus::getInstance();
     eventBus.emplaceListener<ll::event::PlayerJoinEvent>([&](const ll::event::PlayerJoinEvent& ev) {
         auto& pl = static_cast<gmlib::GMPlayer&>(ev.self());
+        auto& papiRef = gmlib::PlaceholderAPI::getInstance();
+
         if (pl.getNetworkProtocolVersion() < ll::getNetworkProtocolVersion()) {
             if (mConfig->send_form) {
-                ll::form::SimpleForm fm("form.title"_tr(), gmlib::PlaceholderAPI::translate("form.content"_tr(), pl));
+                std::string title = "form.title"_tr();
+                std::string content = papiRef.translate("form.content"_tr(), pl);
+                
+                ll::form::SimpleForm fm(title, content);
                 fm.appendButton("form.confirm"_tr());
                 fm.sendTo(pl);
             }
             if (mConfig->send_notice) {
-                pl.sendMessage(gmlib::PlaceholderAPI::translate("notice.message"_tr(), pl));
+                pl.sendMessage(papiRef.translate("notice.message"_tr(), pl));
             }
             if (mConfig->send_toast) {
-                pl.sendToast("toast.title"_tr(), gmlib::PlaceholderAPI::translate("toast.message"_tr(), pl));
+                std::string tTitle = "toast.title"_tr();
+                std::string tMsg = papiRef.translate("toast.message"_tr(), pl);
+                pl.sendToast(tTitle, tMsg);
             }
         }
     });
